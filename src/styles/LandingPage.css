@@ -1,0 +1,123 @@
+.landing-page {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.landing-page main {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+}
+
+.hero {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.hero h1 {
+  font-size: 2.5rem;
+  margin-bottom: 1rem;
+}
+
+.hero p {
+  font-size: 1.2rem;
+  margin-bottom: 2rem;
+}
+
+.cta-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+}
+
+.btn {
+  padding: 0.8rem 1.5rem;
+  border-radius: 4px;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.btn.primary {
+  background-color: #2563eb;
+  color: white;
+}
+
+.btn.secondary {
+  background-color: #e5e7eb;
+  color: #1f2937;
+}
+.text-section {
+  margin-bottom: 2rem;
+  text-align: center;
+}
+
+.text-section .tagline {
+  color: #666;
+  font-size: 1.1rem;
+  margin-bottom: 0.5rem;
+}
+
+.text-section .subtext {
+  color: #555;
+  font-size: 1.1rem;
+}
+.logo-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.logo-section img {
+  height: 70px;
+  border-radius: 25px;
+  margin-bottom: 0.5rem;
+}
+
+.logo-section h1 {
+  color: #3a4fff;
+  font-size: 2.5rem;
+  margin: 0;
+  font-weight: bold;
+}
+.cta-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.cta-buttons button {
+  padding: 1rem 2rem;
+  font-size: 1.1rem;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: background 0.3s ease, transform 0.3s ease;
+}
+
+.cta-buttons .primary {
+  background: #3a4fff;
+  color: white;
+}
+
+.cta-buttons .primary:hover {
+  background: #2b3ace;
+  transform: translateY(-2px);
+}
+
+.cta-buttons .secondary {
+  background: #f2f2f2;
+  color: #222;
+  border: 1px solid #ccc;
+}
+
+.cta-buttons .secondary:hover {
+  background: #e0e0e0;
+  transform: translateY(-2px);
+}

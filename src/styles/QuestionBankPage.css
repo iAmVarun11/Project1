@@ -1,0 +1,15 @@
+.question-bank-page {
+  padding: 2rem;
+}
+
+.question-bank-page table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.question-bank-page th,
+.question-bank-page td {
+  border: 1px solid #ccc;
+  padding: 0.5rem;
+  text-align: left;
+}

@@ -1,0 +1,8 @@
+.quiz-result-page {
+  padding: 2rem;
+}
+
+.quiz-result-page .score {
+  font-size: 1.5rem;
+  margin-bottom: 1rem;
+}

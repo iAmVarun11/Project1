@@ -1,0 +1,42 @@
+/* CTASection.css */
+.gradient-section {
+  background: linear-gradient(to right, #c2ffd8, #92baff);
+  padding: 6rem 1rem;
+  min-height: 50vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  margin-top: 3rem;
+  border-radius: 15px;
+  color: white;
+}
+
+.gradient-section h2 {
+  font-size: 2.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.gradient-section p {
+  font-size: 1.3rem;
+  margin-bottom: 2.5rem;
+  max-width: 800px;
+  line-height: 1.7;
+}
+
+.gradient-section button {
+  padding: 1.2rem 3rem;
+  font-size: 1.2rem;
+  background: white;
+  color: #3a4fff;
+  font-weight: bold;
+  border: none;
+  border-radius: 30px;
+  cursor: pointer;
+  transition: background 0.3s ease, transform 0.3s ease;
+}
+
+.gradient-section button:hover {
+  background: #e0e0e0;
+  transform: translateY(-2px);
+}

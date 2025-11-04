@@ -1,0 +1,20 @@
+.assign-quiz-page {
+  padding: 2rem;
+}
+
+.assign-quiz-page select,
+.assign-quiz-page input {
+  margin-bottom: 1rem;
+  padding: 0.5rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+.assign-quiz-page button {
+  padding: 0.5rem;
+  background-color: #2563eb;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}

@@ -1,0 +1,15 @@
+.view-student-results-page {
+  padding: 2rem;
+}
+
+.view-student-results-page table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.view-student-results-page th,
+.view-student-results-page td {
+  border: 1px solid #ccc;
+  padding: 0.5rem;
+  text-align: left;
+}

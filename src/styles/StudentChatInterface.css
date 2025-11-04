@@ -1,0 +1,10 @@
+.student-chat-interface {
+  padding: 2rem;
+}
+
+.student-chat-interface .chat-window {
+  border: 1px solid #ccc;
+  padding: 1rem;
+  height: 300px;
+  overflow-y: auto;
+}

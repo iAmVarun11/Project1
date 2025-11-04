@@ -1,0 +1,15 @@
+.quiz-list-page {
+  padding: 2rem;
+}
+
+.quiz-list-page table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.quiz-list-page th,
+.quiz-list-page td {
+  border: 1px solid #ccc;
+  padding: 0.5rem;
+  text-align: left;
+}

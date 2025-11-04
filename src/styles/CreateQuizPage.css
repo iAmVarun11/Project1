@@ -1,0 +1,20 @@
+.create-quiz-page {
+  padding: 2rem;
+}
+
+.create-quiz-page input,
+.create-quiz-page textarea {
+  margin-bottom: 1rem;
+  padding: 0.5rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+.create-quiz-page button {
+  padding: 0.5rem;
+  background-color: #2563eb;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
