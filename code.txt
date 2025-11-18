@@ -1,0 +1,360 @@
+// src/pages/StudentChatPage.jsx
+import React, { useState, useEffect } from "react";
+import Sidebar from "../components/Sidebar";
+import "../styles/StudentChatPage.css";
+import { FiPaperclip, FiMenu } from "react-icons/fi";
+
+export default function StudentChatPage() {
+  const [messages, setMessages] = useState([
+    {
+      from: "teacher",
+      text: "Could you please help me with the assignment?",
+      time: "9:40 AM",
+    },
+    {
+      from: "student",
+      text: "Sure, what do you need help with?",
+      time: "9:41 AM",
+    },
+    {
+      from: "teacher",
+      text: "I'm having trouble with question 5.",
+      time: "9:41 AM",
+    },
+  ]);
+
+  const [typing, setTyping] = useState(false);
+  const [input, setInput] = useState("");
+
+  const handleSend = () => {
+    if (!input.trim()) return;
+
+    const newMsg = {
+      from: "student",
+      text: input,
+      time: new Date().toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+      }),
+    };
+
+    setMessages([...messages, newMsg]);
+    setInput("");
+
+    // fake typing indicator
+    setTyping(true);
+    setTimeout(() => setTyping(false), 1500);
+  };
+
+  return (
+    <div className="chat-root">
+      <Sidebar />
+
+      <div className="chat-content">
+        {/* TOP BAR */}
+        <div className="chat-topbar">
+          <div className="chat-search">
+            <input type="text" placeholder="Search..." />
+          </div>
+
+          <div className="chat-user-info">
+            <img src="/src/assets/UserLogo.jpg" className="chat-avatar" />
+            <div className="chat-user-meta">
+              <div className="chat-user-name">Varun</div>
+              <div className="chat-user-role">Student</div>
+            </div>
+          </div>
+        </div>
+
+        {/* HEADER */}
+        <div className="chat-header">
+          <div className="teacher-info">
+            <img src="/src/assets/teacher.png" className="teacher-avatar" />
+            <div>
+              <div className="teacher-name">Mrs. Smith</div>
+              <div className="teacher-status">Online</div>
+            </div>
+          </div>
+
+          <div className="chat-icons">
+            <FiPaperclip className="icon" />
+            <FiMenu className="icon" />
+          </div>
+        </div>
+
+        {/* MESSAGES */}
+        <div className="chat-body">
+          {messages.map((msg, i) => (
+            <div
+              key={i}
+              className={
+                msg.from === "student" ? "msg msg-right" : "msg msg-left"
+              }
+            >
+              <div className="msg-text">{msg.text}</div>
+              <div className="msg-time">{msg.time}</div>
+            </div>
+          ))}
+
+          {typing && <div className="typing-indicator">... is typing</div>}
+        </div>
+
+        {/* INPUT BOX */}
+        <div className="chat-input-box">
+          <input
+            type="text"
+            placeholder="Type a message..."
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && handleSend()}
+          />
+          <button onClick={handleSend} className="send-btn">
+            ➤
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+/FRONTEND/src/styles
+
+.chat-root {
+  display: flex;
+  height: 100vh;
+  background: linear-gradient(to bottom, #e4f1ff, #e8dcff);
+}
+
+/* RIGHT CONTENT */
+.chat-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+/* TOP BAR */
+.chat-topbar {
+  height: 70px;
+  display: flex;
+  align-items: center;
+  padding: 0 20px;
+  justify-content: space-between;
+  
+}
+
+.chat-search input {
+  width: 350px;
+  padding: 10px 15px;
+  border-radius: 15px;
+  border: 1px solid #d6d6d6;
+  background: #ffffffaa;
+}
+
+/* TOP USER */
+.chat-user-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.chat-avatar {
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+}
+
+.chat-user-name {
+  font-weight: 600;
+}
+
+.chat-user-role {
+  font-size: 12px;
+  opacity: 0.7;
+}
+
+/* HEADER */
+.chat-header {
+  display: flex;
+  justify-content: space-between;
+  padding: 15px 25px;
+  background: white;
+  border-bottom: 1px solid #eee;
+}
+
+.teacher-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.teacher-avatar {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+}
+
+.teacher-name {
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.teacher-status {
+  font-size: 13px;
+  color: green;
+}
+
+/* CHAT BODY */
+.chat-body {
+  flex: 1;
+  padding: 20px 30px;
+  overflow-y: auto;
+}
+
+.msg {
+  max-width: 55%;
+  padding: 14px 16px;
+  margin-bottom: 12px;
+  border-radius: 16px;
+  position: relative;
+}
+
+.msg-left {
+  background: #f4f4f4;
+  align-self: flex-start;
+}
+
+.msg-right {
+  background: #4c8bff;
+  color: white;
+  align-self: flex-end;
+  border-bottom-right-radius: 2px;
+}
+
+.msg-time {
+  font-size: 12px;
+  opacity: 0.6;
+  margin-top: 4px;
+  text-align: right;
+}
+
+.typing-indicator {
+  font-size: 13px;
+  opacity: 0.7;
+  padding: 8px;
+}
+
+/* INPUT BOX */
+.chat-input-box {
+  display: flex;
+  gap: 10px;
+  padding: 15px 20px;
+  background: white;
+  border-top: 1px solid #e4e4e4;
+}
+
+.chat-input-box input {
+  flex: 1;
+  padding: 12px 16px;
+  font-size: 15px;
+  border-radius: 20px;
+  border: 1px solid #d0d0d0;
+}
+
+.send-btn {
+  background: #4c8bff;
+  color: white;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: none;
+  font-size: 22px;
+  cursor: pointer;
+}
+
+/FRONTEND/src/App.jsx
+// src/App.jsx
+import React, { Suspense, lazy } from "react";
+import { Routes, Route } from "react-router-dom";
+
+import LandingPage from "./pages/LandingPage";
+import LoginPage from "./pages/LoginPage";
+import SignUpPage from "./pages/SignUpPage";
+import ProtectedRoute from "./components/ProtectedRoute";
+import Spinner from "./components/Spinner";
+
+/* ---------------- STUDENT PAGES ---------------- */
+const StudentDashboard = lazy(() => import("./pages/StudentDashboard"));
+const QuizListPage = lazy(() => import("./pages/QuizListPage"));
+const TakeQuizPage = lazy(() => import("./pages/TakeQuizPage"));
+const QuizResultPage = lazy(() => import("./pages/QuizResultPage"));
+const StudentSettingsPage = lazy(() => import("./pages/StudentSettingsPage"));
+const StudentResultsPage = lazy(() => import("./pages/StudentResultsPage"));
+const EditProfilePage = lazy(() => import("./pages/EditProfilePage"));
+const QuestionBankPage = lazy(() => import("./pages/QuestionBankPage"));
+const StudentChatPage = lazy(() => import("./pages/StudentChatPage")); // ✔ NEW CHAT PAGE
+
+/* ---------------- TEACHER PAGES ---------------- */
+const TeacherDashboard = lazy(() => import("./pages/TeacherDashboard"));
+const TeacherChatInterface = lazy(() => import("./pages/TeacherChatInterface"));
+const StudentManagementPage = lazy(() => import("./pages/StudentManagementPage"));
+const AssignQuizPage = lazy(() => import("./pages/AssignQuizPage"));
+const CreateQuizPage = lazy(() => import("./pages/CreateQuizPage"));
+const ViewStudentResultsPage = lazy(() => import("./pages/ViewStudentResultsPage"));
+const DetailedResultViewPage = lazy(() => import("./pages/DetailedResultViewPage"));
+const TeacherQuizList = lazy(() => import("./pages/TeacherQuizList"));
+
+/* ---------------- ADMIN ---------------- */
+const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
+
+/* ---------------- PUBLIC ---------------- */
+const PublicQuizzesPage = lazy(() => import("./pages/PublicQuizzesPage"));
+
+export default function App() {
+  return (
+    <Suspense fallback={<Spinner />}>
+      <Routes>
+
+        {/* -------- PUBLIC ROUTES -------- */}
+        <Route path="/" element={<LandingPage />} />
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/signup" element={<SignUpPage />} />
+        <Route path="/quizzes/public" element={<PublicQuizzesPage />} />
+
+        {/* -------- STUDENT ROUTES -------- */}
+        <Route element={<ProtectedRoute allowRoles={["student"]} />}>
+          <Route path="/student/dashboard" element={<StudentDashboard />} />
+          <Route path="/student/quizzes" element={<QuizListPage />} />
+          <Route path="/student/quiz/:id" element={<TakeQuizPage />} />
+          <Route path="/student/quiz/result" element={<QuizResultPage />} />
+          <Route path="/student/settings" element={<StudentSettingsPage />} />
+          <Route path="/student/results" element={<StudentResultsPage />} />
+          <Route path="/student/profile" element={<EditProfilePage />} />
+          
+          {/* ✔ NEW CHAT PAGE ROUTE */}
+          <Route path="/student/chat" element={<StudentChatPage />} />
+
+          <Route path="/question-bank" element={<QuestionBankPage />} />
+        </Route>
+
+        {/* -------- TEACHER ROUTES -------- */}
+        <Route element={<ProtectedRoute allowRoles={["teacher"]} />}>
+          <Route path="/teacher/dashboard" element={<TeacherDashboard />} />
+          <Route path="/teacher/chat" element={<TeacherChatInterface />} />
+          <Route path="/teacher/students" element={<StudentManagementPage />} />
+          <Route path="/teacher/assign" element={<AssignQuizPage />} />
+          <Route path="/teacher/create-quiz" element={<CreateQuizPage />} />
+          <Route path="/teacher/results" element={<ViewStudentResultsPage />} />
+          <Route path="/teacher/results/:id" element={<DetailedResultViewPage />} />
+
+          {/* Teacher quiz list */}
+          <Route path="/teacher/quizzes" element={<TeacherQuizList />} />
+        </Route>
+
+        {/* -------- ADMIN ROUTES -------- */}
+        <Route element={<ProtectedRoute allowRoles={["admin"]} />}>
+          <Route path="/admin/dashboard" element={<AdminDashboard />} />
+        </Route>
+
+      </Routes>
+    </Suspense>
+  );
+}

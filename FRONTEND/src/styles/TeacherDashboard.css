@@ -1,0 +1,70 @@
+.td-root {
+  display: flex;
+  background: linear-gradient(#e8f0ff, #eae4ff);
+  height: 100vh;
+}
+
+.td-main {
+  flex: 1;
+  padding: 30px;
+}
+
+.td-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.td-search input {
+  width: 450px;
+  padding: 10px 15px;
+  border-radius: 12px;
+  border: 1px solid #cbd5e1;
+}
+
+.td-user {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.td-user img {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+}
+
+.td-overview {
+  margin-top: 30px;
+  display: flex;
+  gap: 20px;
+}
+
+.td-card {
+  background: white;
+  padding: 20px;
+  border-radius: 20px;
+  flex: 1;
+}
+
+.blue { background: #d8eaff; }
+.purple { background: #e8e2ff; }
+.pink { background: #ffe5ea; }
+
+.td-grid {
+  margin-top: 25px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 25px;
+}
+
+.large {
+  min-height: 200px;
+}
+
+.assign-row, .course-item {
+  padding: 12px;
+  background: #f3f6ff;
+  margin-top: 10px;
+  border-radius: 10px;
+}

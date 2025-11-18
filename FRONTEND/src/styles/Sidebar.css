@@ -1,0 +1,62 @@
+/* src/styles/Sidebar.css */
+
+.app-sidebar {
+  width: 260px;
+  background: linear-gradient(180deg, #f0f7ff 0%, #eaf4ff 100%);
+  padding: 32px 20px;
+  box-sizing: border-box;
+  border-right: 1px solid rgba(12, 44, 84, 0.03);
+  display:flex;
+  flex-direction:column;
+  gap:18px;
+  min-height:100vh;
+}
+
+/* Brand */
+.brand { display:flex; align-items:center; gap:12px; margin-bottom:6px; }
+.logo {
+  width:48px; height:48px; border-radius:12px; background:linear-gradient(180deg,#7aa2ff,#5b8fff); color:white;
+  display:flex; align-items:center; justify-content:center; font-weight:800; font-size:20px;
+  box-shadow: 0 8px 20px rgba(18,54,92,0.08);
+}
+.brand-name { font-weight:700; font-size:18px; color:#0b1720; }
+
+/* Nav */
+.side-nav { display:flex; flex-direction:column; gap:8px; margin-top:10px; }
+.nav-item {
+  display:flex; align-items:center; gap:12px; padding:12px; border-radius:10px;
+  color:#0b1720; text-decoration:none; font-weight:600; font-size:15px;
+  transition: all 0.18s ease;
+  border: 1px solid transparent;
+}
+.nav-item svg { font-size:18px; color:#173b6b; }
+.nav-item:hover { transform: translateX(6px); background: rgba(255,255,255,0.8); box-shadow: 0 6px 12px rgba(10,30,60,0.04); }
+
+.nav-item.active {
+  background: linear-gradient(90deg, rgba(255,255,255,0.95), rgba(240,248,255,0.9));
+  border-left: 4px solid #7aa2ff;
+  transform: none;
+}
+
+/* bottom area */
+.sidebar-bottom { margin-top:auto; display:flex; flex-direction:column; gap:8px; }
+.nav-item.small { padding:10px; font-size:14px; color:#334155; }
+button.nav-item.logout {
+  background:transparent; border:none; text-align:left; cursor:pointer; color:#0b1720;
+}
+.brand-logo-img {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  object-fit: cover;
+  box-shadow: 0 8px 20px rgba(18, 54, 92, 0.08);
+}
+
+/* responsive */
+@media (max-width: 1080px) {
+  .app-sidebar { width: 72px; padding:18px 10px; gap:10px; }
+  .brand-name { display:none; }
+  .nav-item span { display:none; }
+  .nav-item { justify-content:center; padding:10px; }
+  .sidebar-bottom { gap:4px; }
+}

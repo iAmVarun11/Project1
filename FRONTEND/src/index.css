@@ -1,0 +1,122 @@
+/* index.css */
+
+/* ----- THEME ROOT COLORS ----- */
+:root {
+  --primary-color: #3a4fff;
+  --primary-dark: #2b3ace;
+
+  --secondary-color: #e5e7eb;
+  --accent-color: #3498db;
+
+  --background-light: #f7f9ff;
+  --surface-white: #ffffff;
+
+  --text-color: #1e293b;
+  --text-light: #64748b;
+
+  --border-color: #d3d8e0;
+  --success-color: #10b981;
+  --error-color: #ef4444;
+  --warning-color: #f59e0b;
+}
+
+/* ----- BASE RESET ----- */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+  background-color: var(--background-light);
+  color: var(--text-color);
+  line-height: 1.5;
+  min-height: 100vh;
+}
+
+img {
+  max-width: 100%;
+  display: block;
+}
+
+button {
+  cursor: pointer;
+}
+
+/* ----- GLOBAL CONTAINERS & UTILITIES ----- */
+.container {
+  width: 100%;
+  max-width: 1200px;
+  margin: auto;
+  padding: 1rem;
+}
+
+.flex { display: flex; gap: 1rem; }
+.flex-col { flex-direction: column; }
+.items-center { align-items: center; }
+.justify-between { justify-content: space-between; }
+
+.text-center { text-align: center; }
+.text-sm { font-size: 0.875rem; }
+.text-gray { color: var(--text-light); }
+
+/* ----- GLOBAL COMPONENT STYLES ----- */
+.card {
+  background: var(--surface-white);
+  padding: 1.25rem;
+  border-radius: 0.75rem;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+}
+
+.btn {
+  padding: 0.6rem 1.2rem;
+  border-radius: 8px;
+  font-weight: 600;
+  display: inline-block;
+  transition: 0.2s ease;
+}
+
+.btn-primary {
+  background: var(--primary-color);
+  color: white;
+  border: none;
+}
+
+.btn-primary:hover {
+  background: var(--primary-dark);
+}
+
+.btn-secondary {
+  background: var(--surface-white);
+  border: 1px solid var(--border-color);
+  color: var(--primary-color);
+}
+
+.btn-secondary:hover {
+  background: var(--secondary-color);
+}
+
+/* ----- FORM ELEMENTS ----- */
+.form-group { margin-bottom: 1rem; }
+.form-label { display: block; margin-bottom: 0.5rem; font-weight: 600; }
+
+.form-control {
+  width: 100%;
+  padding: 0.6rem;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  font-size: 1rem;
+}
+
+.form-control:focus {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 2px rgba(58, 79, 255, 0.3);
+  outline: none;
+}
+
+/* ----- RESPONSIVE ----- */
+@media (max-width: 640px) {
+  .mobile\:flex-col { flex-direction: column; }
+  .mobile\:w-full { width: 100%; }
+}

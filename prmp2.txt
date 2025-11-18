@@ -1,0 +1,3567 @@
+/FRONTEND/src/api/auth.js
+import { httpRequest } from './http';
+
+function normalizeRole(role) {
+  if (!role) return undefined;
+  const r = role.toLowerCase();
+  if (r === 'student' || r === 'teacher' || r === 'admin') return r;
+  return 'student';
+}
+
+export async function apiRegister({ name, email, password, role }) {
+  const body = { name, email, password, role: normalizeRole(role) };
+  const data = await httpRequest('/auth/register', {
+    method: 'POST',
+    body: JSON.stringify(body)
+  });
+  if (data?.token) {
+    localStorage.setItem('auth_token', data.token);
+  }
+  return data;
+}
+
+export async function apiLogin({ email, password }) {
+  const data = await httpRequest('/auth/login', {
+    method: 'POST',
+    body: JSON.stringify({ email, password })
+  });
+  if (data?.token) {
+    localStorage.setItem('auth_token', data.token);
+  }
+  return data;
+}
+
+export function apiLogout() {
+  localStorage.removeItem('auth_token');
+}
+
+export async function apiMe() {
+  return httpRequest('/auth/me', { method: 'GET' });
+}
+
+export async function apiUpdateMe({ name, password }) {
+  return httpRequest('/auth/me', {
+    method: 'PATCH',
+    body: JSON.stringify({ name, password })
+  });
+}
+
+/FRONTEND/src/api/http.js
+const API_BASE = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_PUBLIC_API_BASE) ? import.meta.env.VITE_PUBLIC_API_BASE : '/api';
+const API_KEY = (typeof import.meta !== 'undefined' && import.meta.env) ? import.meta.env.VITE_PUBLIC_API_KEY : '';
+
+function getAuthToken() {
+  return localStorage.getItem('auth_token') || '';
+}
+
+export async function httpRequest(path, options = {}) {
+  const token = getAuthToken();
+  const headers = {
+    'Content-Type': 'application/json',
+    ...(options.headers || {}),
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    ...(API_KEY ? { 'X-API-Key': API_KEY } : {})
+  };
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), options.timeoutMs || 15000);
+  let res;
+  try {
+    res = await fetch(`${API_BASE}${path}`, {
+      ...options,
+      headers,
+      signal: controller.signal
+    });
+  } finally {
+    clearTimeout(timeout);
+  }
+  const contentType = res.headers.get('content-type');
+  const isJson = contentType && contentType.includes('application/json');
+  const data = isJson ? await res.json() : await res.text();
+  if (!res.ok) {
+    const message = (isJson && data && data.message) ? data.message : res.statusText;
+    throw new Error(message || 'Request failed');
+  }
+  return data;
+}
+
+/FRONTEND/src/api/public.js
+import { httpRequest } from './http';
+
+export async function apiListPublicQuizzes(subject) {
+  const qs = subject ? `?subject=${encodeURIComponent(subject)}` : '';
+  return httpRequest(`/public/quizzes${qs}`, { method: 'GET' });
+}
+
+
+/FRONTEND/src/api/quizzes.js
+import { httpRequest } from './http';
+
+export async function apiListQuizzes() {
+  return httpRequest('/quizzes', { method: 'GET' });
+}
+
+export async function apiGetQuiz(id) {
+  return httpRequest(`/quizzes/${id}`, { method: 'GET' });
+}
+
+
+/FRONTEND/src/api/result.js
+
+import { httpRequest } from './http';
+
+export async function apiSubmitResult({ quizId, answers, startedAt }) {
+  return httpRequest('/results/submit', {
+    method: 'POST',
+    body: JSON.stringify({ quizId, answers, startedAt })
+  });
+}
+
+export async function apiMyResults() {
+  return httpRequest('/results/my', { method: 'GET' });
+}
+
+/FRONTEND/src/assets/arrow.jpg
+/FRONTEND/src/assets/book.jpg
+/FRONTEND/src/assets/box.jpg
+/FRONTEND/src/assets/bronz.jpg
+/FRONTEND/src/assets/cal.jpg
+/FRONTEND/src/assets/chat.jpg
+/FRONTEND/src/assets/chemistry.jpg
+/FRONTEND/src/assets/excal.jpg
+/FRONTEND/src/assets/generated-image(3).png
+/FRONTEND/src/assets/generated-image(4).png
+/FRONTEND/src/assets/gold.jpg
+/FRONTEND/src/assets/logo.jpg
+/FRONTEND/src/assets/maths.jpg
+/FRONTEND/src/assets/medal.jpg
+/FRONTEND/src/assets/notification.png
+/FRONTEND/src/assets/phy.png
+/FRONTEND/src/assets/quiz-graphic.jpg
+/FRONTEND/src/assets/sliver.jpg
+/FRONTEND/src/assets/st.jpg
+/FRONTEND/src/assets/stack_book.jpg
+/FRONTEND/src/assets/student.jpg
+/FRONTEND/src/assets/trophy.jpg
+/FRONTEND/src/assets/UserLogo.jpg
+
+
+/FRONTEND/src/components/ChatWindow.jsx
+
+import React, { useState, useEffect, useRef } from 'react';
+import '../styles/ChatWindow.css';
+
+const ChatWindow = ({ isOpen, onClose }) => {
+  const [messages, setMessages] = useState([]);
+  const [newMessage, setNewMessage] = useState('');
+  const messagesEndRef = useRef(null);
+
+  const handleSendMessage = (e) => {
+    e.preventDefault();
+    if (newMessage.trim() === '') return;
+    
+    // In a real app, this would be sent to a server
+    setMessages([...messages, {
+      id: Date.now(),
+      sender: 'You',
+      text: newMessage,
+      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      isCurrentUser: true
+    }]);
+    
+    // Mock response
+    setTimeout(() => {
+      setMessages(prev => [...prev, {
+        id: Date.now() + 1,
+        sender: 'Teacher',
+        text: 'Thank you for your message. I will get back to you soon.',
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        isCurrentUser: false
+      }]);
+    }, 1000);
+    
+    setNewMessage('');
+  };
+
+  useEffect(() => {
+    // Scroll to bottom when messages change
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
+  return (
+    <div className={`chat-window ${isOpen ? 'open' : ''}`}>
+      <div className="chat-header">
+        <h3>Chat with Teacher</h3>
+        <button className="close-chat" onClick={onClose}>×</button>
+      </div>
+      
+      <div className="chat-messages">
+        {messages.length === 0 ? (
+          <div className="empty-chat">
+            <img 
+              src="https://placehold.co/200x200" 
+              alt="No messages yet illustration - empty chat bubble icon with friendly smile" 
+            />
+            <p>No messages yet. Start the conversation!</p>
+          </div>
+        ) : (
+          messages.map(message => (
+            <div 
+              key={message.id} 
+              className={`message ${message.isCurrentUser ? 'sent' : 'received'}`}
+            >
+              {!message.isCurrentUser && (
+                <div className="message-avatar">
+                  <img 
+                    src="https://placehold.co/30x30" 
+                    alt={`${message.sender}'s profile picture`} 
+                  />
+                </div>
+              )}
+              <div className="message-content">
+                {!message.isCurrentUser && (
+                  <span className="message-sender">{message.sender}</span>
+                )}
+                <div className="message-text">{message.text}</div>
+                <span className="message-time">{message.time}</span>
+              </div>
+            </div>
+          ))
+        )}
+        <div ref={messagesEndRef} />
+      </div>
+      
+      <form className="chat-input" onSubmit={handleSendMessage}>
+        <input
+          type="text"
+          value={newMessage}
+          onChange={(e) => setNewMessage(e.target.value)}
+          placeholder="Type your message here..."
+        />
+        <button type="submit">
+          <i className="send-icon"></i>
+        </button>
+      </form>
+    </div>
+  );
+};
+
+export default ChatWindow;
+
+/FRONTEND/src/components/ChatWindow.jsx
+import React, { useState, useEffect, useRef } from 'react';
+import '../styles/ChatWindow.css';
+
+const ChatWindow = ({ isOpen, onClose }) => {
+  const [messages, setMessages] = useState([]);
+  const [newMessage, setNewMessage] = useState('');
+  const messagesEndRef = useRef(null);
+
+  const handleSendMessage = (e) => {
+    e.preventDefault();
+    if (newMessage.trim() === '') return;
+    
+    // In a real app, this would be sent to a server
+    setMessages([...messages, {
+      id: Date.now(),
+      sender: 'You',
+      text: newMessage,
+      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      isCurrentUser: true
+    }]);
+    
+    // Mock response
+    setTimeout(() => {
+      setMessages(prev => [...prev, {
+        id: Date.now() + 1,
+        sender: 'Teacher',
+        text: 'Thank you for your message. I will get back to you soon.',
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        isCurrentUser: false
+      }]);
+    }, 1000);
+    
+    setNewMessage('');
+  };
+
+  useEffect(() => {
+    // Scroll to bottom when messages change
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
+  return (
+    <div className={`chat-window ${isOpen ? 'open' : ''}`}>
+      <div className="chat-header">
+        <h3>Chat with Teacher</h3>
+        <button className="close-chat" onClick={onClose}>×</button>
+      </div>
+      
+      <div className="chat-messages">
+        {messages.length === 0 ? (
+          <div className="empty-chat">
+            <img 
+              src="https://placehold.co/200x200" 
+              alt="No messages yet illustration - empty chat bubble icon with friendly smile" 
+            />
+            <p>No messages yet. Start the conversation!</p>
+          </div>
+        ) : (
+          messages.map(message => (
+            <div 
+              key={message.id} 
+              className={`message ${message.isCurrentUser ? 'sent' : 'received'}`}
+            >
+              {!message.isCurrentUser && (
+                <div className="message-avatar">
+                  <img 
+                    src="https://placehold.co/30x30" 
+                    alt={`${message.sender}'s profile picture`} 
+                  />
+                </div>
+              )}
+              <div className="message-content">
+                {!message.isCurrentUser && (
+                  <span className="message-sender">{message.sender}</span>
+                )}
+                <div className="message-text">{message.text}</div>
+                <span className="message-time">{message.time}</span>
+              </div>
+            </div>
+          ))
+        )}
+        <div ref={messagesEndRef} />
+      </div>
+      
+      <form className="chat-input" onSubmit={handleSendMessage}>
+        <input
+          type="text"
+          value={newMessage}
+          onChange={(e) => setNewMessage(e.target.value)}
+          placeholder="Type your message here..."
+        />
+        <button type="submit">
+          <i className="send-icon"></i>
+        </button>
+      </form>
+    </div>
+  );
+};
+
+export default ChatWindow;
+
+
+/FRONTEND/src/components/CTA.jsx
+
+import React from 'react';
+import "../styles/CTA.css";
+const CTASection = () => (
+  <section className="gradient-section">
+    <h2>Ready to Transform Your Assessments?</h2>
+    <p>Join thousands of students who use QuizMaster to prepare smarter.</p>
+    <button>Start Your Free Trial</button>
+  </section>
+);
+
+export default CTASection;
+
+/FRONTEND/src/components/ErrorBoundary.jsx
+import React from 'react';
+
+class ErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false };
+  }
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+  componentDidCatch(error, info) {
+    // eslint-disable-next-line no-console
+    console.error('ErrorBoundary', error, info);
+  }
+  render() {
+    if (this.state.hasError) {
+      return <div style={{ padding: 24 }}><h2>Something went wrong.</h2><p>Please reload the page.</p></div>;
+    }
+    return this.props.children;
+  }
+}
+
+export default ErrorBoundary;
+
+/FRONTEND/src/components/Features.jsx
+
+import React from 'react';
+import "../styles/Features.css";
+import book from '../assets/book.jpg';
+
+import student from '../assets/student.jpg';
+import medal from '../assets/medal.jpg';
+const Features = () => (
+  <section>
+    <h2>Everything You Need for Digital Assessment</h2>
+    <p>Powerful tools for students to take tests and analyze quizzes.</p>
+    <div className="features">
+      <div className="feature-card">
+        <h3><img src={book} alt="Exam Prep" /><br />Exam Preparation</h3>
+        <p>Prepare efficiently with question banks, practice sets, and revision modules.</p>
+      </div>
+      <div className="feature-card">
+        <h3><img src={student}alt="Student Management" /><br />Student Management</h3>
+        <p>Assign quizzes, track participation, and manage access easily.</p>
+      </div>
+      <div className="feature-card">
+        <h3><img src={medal} alt="Analytics"/><br />Analytics & Reports</h3>
+        <p>Generate performance and learning outcome reports.</p>
+      </div>
+    </div>
+  </section>
+);
+
+export default Features;
+
+/FRONTEND/src/components/Footer.jsx
+import React from 'react';
+import '../styles/Footer.css';
+
+const Footer = () => {
+  return (
+    <footer className="footer">
+      <div className="footer-content">
+        <div className="footer-section about">
+          <h3>Quiz Master</h3>
+          <p>
+            An interactive educational platform for teachers and students 
+            to create, take, and manage quizzes efficiently.
+          </p>
+        </div>
+        
+        <div className="footer-section links">
+          <h3>Quick Links</h3>
+          <ul>
+            <li><a href="/about">About Us</a></li>
+            <li><a href="/contact">Contact</a></li>
+            <li><a href="/privacy">Privacy Policy</a></li>
+            <li><a href="/terms">Terms of Service</a></li>
+          </ul>
+        </div>
+        
+        <div className="footer-section contact">
+          <h3>Contact Us</h3>
+          <p><i className="icon email"></i> contact@eduquiz.com</p>
+          <p><i className="icon phone"></i> +1 (555) 123-4567</p>
+          <div className="social-icons">
+            <a href="#"><i className="social-icon facebook"></i></a>
+            <a href="#"><i className="social-icon twitter"></i></a>
+            <a href="#"><i className="social-icon linkedin"></i></a>
+          </div>
+        </div>
+      </div>
+      
+      <div className="footer-bottom">
+        &copy; {new Date().getFullYear()} QuizMaster. All rights reserved.
+      </div>
+    </footer>
+  );
+};
+
+export default Footer;
+
+
+/FRONTEND/src/components/Navbar.jsx
+import React from 'react';
+import { Link, useLocation } from 'react-router-dom';
+import '../styles/Navbar.css';
+
+const Navbar = () => {
+  const location = useLocation();
+
+  return (
+    <nav className="navbar">
+      <div className="navbar-brand">
+        <Link to="/" className="navbar-logo">
+          <img 
+            src="C:\Users\gaur6\OneDrive\Desktop\hello\quiz_master\src\assets\images\Logo.jpg" 
+            alt="Quiz Master" 
+          />
+        </Link>
+      </div>
+      
+      <ul className="nav-links">
+        <li className={location.pathname === '/' ? 'active' : ''}>
+          <Link to="/">Home</Link>
+        </li>
+        <li className={location.pathname === '/quizzes' ? 'active' : ''}>
+          <Link to="/quizzes">Quizzes</Link>
+        </li>
+        <li className={location.pathname === '/question-bank' ? 'active' : ''}>
+          <Link to="/question-bank">Question Bank</Link>
+        </li>
+        <li className={location.pathname === '/chat' ? 'active' : ''}>
+          <Link to="/chat">Chat</Link>
+        </li>
+      </ul>
+      
+      <div className="navbar-user">
+        <div className="user-avatar">
+          <img 
+            src="C:\Users\gaur6\OneDrive\Desktop\hello\quiz_master\src\assets\images\UserLogo.jpg" 
+            alt="User profile picture - smiling person with blue background" 
+          />
+        </div>
+        <div className="user-dropdown">
+          <span>John Doe</span>
+          <div className="dropdown-content">
+            <Link to="/profile">Profile</Link>
+            <Link to="/settings">Settings</Link>
+            <button>Logout</button>
+          </div>
+        </div>
+      </div>
+    </nav>
+  );
+};
+
+export default Navbar;
+
+/FRONTEND/src/components/ProtectedRoute.jsx
+import React from 'react';
+import { Navigate, Outlet } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
+
+const ProtectedRoute = ({ allowRoles }) => {
+  const { user, loading } = useAuth();
+  if (loading) return null;
+  if (!user) return <Navigate to="/login" replace />;
+  if (allowRoles && allowRoles.length > 0 && !allowRoles.includes(user.role)) {
+    return <Navigate to="/" replace />;
+  }
+  return <Outlet />;
+};
+
+export default ProtectedRoute;
+
+/FRONTEND/src/components/QuizCard.jsx
+import React from 'react';
+import '../styles/QuizCard.css';
+
+const QuizCard = ({ subject, image }) => {
+  return (
+    <div className="quiz-card">
+      <img src={image} alt={subject} />
+      <h4>{subject}</h4>
+    </div>
+  );
+};
+
+export default QuizCard;
+
+/FRONTEND/src/components/Sidebar.jsx
+import React from 'react';
+import '../styles/Sidebar.css';
+
+const Sidebar = () => {
+  return (
+    <div className="sidebar">
+      <img src="/images/logo.png" alt="Logo" className="logo" />
+      <nav className="sidebar-nav">
+        <a href="#">Home</a>
+        <a href="#">Quizzes</a>
+        <a href="#">Question Bank</a>
+        <a href="#">Profile</a>
+        <a href="#">Chat</a>
+      </nav>
+      <div className="quiz-timer">
+        <p>Quiz start in</p>
+        <div className="timer">00:00:00</div>
+      </div>
+    </div>
+  );
+};
+
+export default Sidebar;
+
+/FRONTEND/src/components/Skeleton.jsx
+
+import React from 'react';
+
+const SkeletonTable = ({ rows = 5, cols = 4 }) => {
+  return (
+    <table>
+      <thead>
+        <tr>
+          {Array.from({ length: cols }).map((_, i) => <th key={i}> </th>)}
+        </tr>
+      </thead>
+      <tbody>
+        {Array.from({ length: rows }).map((_, r) => (
+          <tr key={r}>
+            {Array.from({ length: cols }).map((__, c) => (
+              <td key={c}><div style={{ background: '#eee', height: 14, borderRadius: 4 }} /></td>
+            ))}
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+};
+
+export default SkeletonTable;
+
+/FRONTEND/src/components/Spinner.jsx
+
+import React from 'react';
+
+const Spinner = () => {
+  return <div style={{ padding: 24, display: 'flex', justifyContent: 'center' }}>Loading...</div>;
+};
+
+export default Spinner;
+
+/FRONTEND/src/context/AuthContext.jsx
+import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import { apiMe, apiLogout } from '../api/auth';
+
+const AuthContext = createContext(null);
+
+export function AuthProvider({ children }) {
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let active = true;
+    async function load() {
+      try {
+        const token = localStorage.getItem('auth_token');
+        if (!token) {
+          setUser(null);
+        } else {
+          const data = await apiMe();
+          if (active) setUser(data.user || null);
+        }
+      } catch (_e) {
+        setUser(null);
+      } finally {
+        if (active) setLoading(false);
+      }
+    }
+    load();
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  function logout() {
+    apiLogout();
+    setUser(null);
+  }
+
+  const value = useMemo(() => ({ user, setUser, loading, logout }), [user, loading]);
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+}
+
+export function useAuth() {
+  return useContext(AuthContext);
+}
+
+/FRONTEND/src/pages/AdminDashboard.jsx
+
+import React from 'react';
+import '../styles/AdminDashboard.css';
+
+const AdminDashboard = () => {
+  return (
+    <div className="admin-dashboard">
+      <h2>Admin Dashboard</h2>
+      {/* Platform usage stats */}
+      <div>
+        {/* Display stats */}
+      </div>
+    </div>
+  );
+};
+
+export default AdminDashboard;
+
+/FRONTEND/src/pages/AssignQuizPage.jsx
+
+import React from 'react';
+import '../styles/AssignQuizPage.css';
+
+const AssignQuizPage = () => {
+  return (
+    <div className="assign-quiz-page">
+      <h2>Assign Quiz</h2>
+      <select>
+        <option>Select Quiz</option>
+        {/* Map through quizzes */}
+      </select>
+      <select>
+        <option>Select Student</option>
+        {/* Map through students */}
+      </select>
+      <input type="datetime-local" />
+      <button>Assign Quiz</button>
+    </div>
+  );
+};
+
+export default AssignQuizPage;
+
+/FRONTEND/src/pages/CreateQuizPage.jsx
+import React, { useState } from 'react';
+import '../styles/CreateQuizPage.css';
+
+const CreateQuizPage = () => {
+  const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
+  const [duration, setDuration] = useState('');
+  const [questions, setQuestions] = useState([]);
+
+  const handleAddQuestion = () => {
+    setQuestions([...questions, { question: '', options: ['', ''], answer: '' }]);
+  };
+
+  const handleSave = () => {
+    // Save quiz logic
+  };
+
+  return (
+    <div className="create-quiz-page">
+      <h2>Create Quiz</h2>
+      <input
+        type="text"
+        placeholder="Quiz Title"
+        value={title}
+        onChange={(e) => setTitle(e.target.value)}
+        required
+      />
+      <textarea
+        placeholder="Description"
+        value={description}
+        onChange={(e) => setDescription(e.target.value)}
+        required
+      />
+      <input
+        type="number"
+        placeholder="Duration (minutes)"
+        value={duration}
+        onChange={(e) => setDuration(e.target.value)}
+        required
+      />
+      <button onClick={handleAddQuestion}>Add Question</button>
+      {questions.map((q, index) => (
+        <div key={index}>
+          <input
+            type="text"
+            placeholder="Question"
+            value={q.question}
+            onChange={(e) => {
+              const newQuestions = [...questions];
+              newQuestions[index].question = e.target.value;
+              setQuestions(newQuestions);
+            }}
+          />
+          <input
+            type="text"
+            placeholder="Option 1"
+            value={q.options[0]}
+            onChange={(e) => {
+              const newQuestions = [...questions];
+              newQuestions[index].options[0] = e.target.value;
+              setQuestions(newQuestions);
+            }}
+          />
+          <input
+            type="text"
+            placeholder="Option 2"
+            value={q.options[1]}
+            onChange={(e) => {
+              const newQuestions = [...questions];
+              newQuestions[index].options[1] = e.target.value;
+              setQuestions(newQuestions);
+            }}
+          />
+          <input
+            type="text"
+            placeholder="Correct Answer"
+            value={q.answer}
+            onChange={(e) => {
+              const newQuestions = [...questions];
+              newQuestions[index].answer = e.target.value;
+              setQuestions(newQuestions);
+            }}
+          />
+        </div>
+      ))}
+      <button onClick={handleSave}>Save Quiz</button>
+    </div>
+  );
+};
+
+export default CreateQuizPage;
+
+
+/FRONTEND/src/pages/DetailResultViewPage.jsx
+
+import React from 'react';
+import '../styles/DetailedResultViewPage.css';
+
+const DetailedResultViewPage = () => {
+  return (
+    <div className="detailed-result-view-page">
+      <h2>Detailed Results</h2>
+      {/* Show each question with student’s answer and correct answer */}
+      <div>
+        {/* Map through questions */}
+      </div>
+    </div>
+  );
+};
+
+export default DetailedResultViewPage;
+
+/FRONTEND/src/pages/EditProfilePage.jsx
+
+import React, { useEffect, useState } from 'react';
+import '../styles/EditProfilePage.css';
+import { useAuth } from '../context/AuthContext';
+import { apiMe, apiUpdateMe } from '../api/auth';
+
+const EditProfilePage = () => {
+  const { user, setUser } = useAuth();
+  const [name, setName] = useState('');
+  const [password, setPassword] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState('');
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    let active = true;
+    async function init() {
+      try {
+        if (user?.name) {
+          setName(user.name);
+          return;
+        }
+        const data = await apiMe();
+        if (active && data?.user?.name) setName(data.user.name);
+      } catch (_e) { /* ignore */ }
+    }
+    init();
+    return () => { active = false; };
+  }, [user]);
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    setError('');
+    setMessage('');
+    setSaving(true);
+    apiUpdateMe({ name, password: password || undefined })
+      .then(({ user: updated }) => {
+        setUser(updated);
+        setMessage('Profile updated');
+        setPassword('');
+      })
+      .catch(err => setError(err.message || 'Failed to update'))
+      .finally(() => setSaving(false));
+  };
+
+  return (
+    <div className="edit-profile-page">
+      <h2>Edit Profile</h2>
+      <form onSubmit={handleSubmit}>
+        <input
+          type="text"
+          placeholder="Name"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          required
+        />
+        <input
+          type="password"
+          placeholder="New Password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          minLength={6}
+        />
+        <button type="submit" disabled={saving}>{saving ? 'Saving...' : 'Update Profile'}</button>
+      </form>
+      {message ? <p style={{ color: 'green', marginTop: 8 }}>{message}</p> : null}
+      {error ? <p style={{ color: 'red', marginTop: 8 }}>{error}</p> : null}
+    </div>
+  );
+};
+
+export default EditProfilePage;
+
+/FRONTEND/src/pages/LandingPage.jsx
+import React from 'react';
+import { useNavigate } from 'react-router-dom'; // ✅ Add this
+import Navbar from '../components/Navbar';
+import Footer from '../components/Footer';
+import Features from '../components/Features';
+import CTA from '../components/CTA';
+import '../styles/LandingPage.css';
+import logo from '../assets/logo.jpg';
+
+const LandingPage = () => {
+  const navigate = useNavigate(); // ✅ Initialize navigate
+
+  return (
+    <div className="landing-page">
+      
+      
+      <div className="hero-section">
+        <div className="logo-section">
+          <img src={logo} alt="QuizMaster Logo" />
+          <h1>QuizMaster</h1>
+        </div>
+
+        <div className="text-section">
+          <p className="tagline">Empowering Smart Assessments for Modern Education</p>
+          <p className="subtext">Analyze quizzes with our comprehensive platform designed for students.</p>
+        </div>
+
+        <div className="cta-buttons">
+          <button className="primary" onClick={() => navigate('/login')}>Login &gt;</button>
+          <button className="secondary" onClick={() => navigate('/signup')}>Sign up</button>
+        </div>
+
+        <Features />
+        <CTA />
+      </div>
+      
+      <Footer />
+    </div>
+  );
+};
+
+export default LandingPage;
+
+
+/FRONTEND/src/pages/LoginPage.jsx
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import '../styles/LoginPage.css';
+import quizImage from '../assets/quiz-graphic.png';
+import logo from '../assets/logo.jpg';
+import { apiLogin, apiMe } from '../api/auth';
+
+const LoginPage = () => {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [role, setRole] = useState('Student');
+  const [error, setError] = useState('');
+  const navigate = useNavigate();
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+    try {
+      await apiLogin({ email, password });
+      const { user } = await apiMe();
+      const userRole = user?.role || role.toLowerCase();
+      if (userRole === 'student') {
+        navigate('/student-dashboard');
+      } else if (userRole === 'teacher') {
+        navigate('/teacher-dashboard');
+      } else if (userRole === 'admin') {
+        navigate('/admin/dashboard');
+      } else {
+        navigate('/');
+      }
+    } catch (err) {
+      setError(err.message || 'Login failed');
+    }
+  };
+
+  return (
+    <div className="auth-wrapper">
+      <div className="auth-container">
+        <div className="auth-left">
+          <img src={quizImage} alt="Quiz Visual" />
+        </div>
+        <div className="auth-right">
+          <img src={logo} alt="Logo" className="auth-logo" />
+          <h1 className="auth-title">QuizMaster</h1>
+          <h2 className="auth-subtitle">Login</h2>
+
+          <form onSubmit={handleSubmit} className="auth-form">
+            <label>Email Address</label>
+            <input
+              type="email"
+              placeholder="Enter your email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
+
+            <label>Password</label>
+            <input
+              type="password"
+              placeholder="Enter your password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
+
+            <label>I am</label>
+            <select value={role} onChange={(e) => setRole(e.target.value)}>
+              <option value="Student">Student</option>
+              <option value="Teacher">Teacher</option>
+              <option value="Admin">Admin</option>
+            </select>
+
+            <button type="submit" className="auth-button">Login</button>
+
+            {error ? <p style={{ color: 'red', marginTop: '8px' }}>{error}</p> : null}
+
+            <div className="auth-links">
+              <a href="/forgot-password">Forgot Password?</a>
+              <p>Don't have an account? <a href="/signup">Sign Up</a></p>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default LoginPage;
+
+
+/FRONTEND/src/pages/PublicQuizzesPage.jsx
+import React, { useEffect, useMemo, useState } from 'react';
+import { apiListPublicQuizzes } from '../api/public';
+import '../styles/QuizListPage.css';
+
+const SUBJECTS = ['Mathematics', 'Physics', 'Chemistry', 'Biology', 'English', 'History', 'Geography', 'Computer Science'];
+
+const PublicQuizzesPage = () => {
+  const [subject, setSubject] = useState('');
+  const [quizzes, setQuizzes] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    let active = true;
+    async function load() {
+      try {
+        setLoading(true);
+        const data = await apiListPublicQuizzes(subject || undefined);
+        if (active) setQuizzes(data.quizzes || []);
+      } catch (e) {
+        setError(e.message || 'Failed to load quizzes');
+      } finally {
+        if (active) setLoading(false);
+      }
+    }
+    load();
+    return () => { active = false; };
+  }, [subject]);
+
+  const subjectGroups = useMemo(() => {
+    const map = new Map();
+    for (const q of quizzes) {
+      const s = q.subject || 'General';
+      if (!map.has(s)) map.set(s, []);
+      map.get(s).push(q);
+    }
+    return map;
+  }, [quizzes]);
+
+  return (
+    <div className="quiz-list-page">
+      <h2>Browse Quizzes</h2>
+      <div style={{ marginBottom: 16 }}>
+        <label style={{ marginRight: 8 }}>Filter by subject:</label>
+        <select value={subject} onChange={(e) => setSubject(e.target.value)}>
+          <option value="">All</option>
+          {SUBJECTS.map(s => <option key={s} value={s}>{s}</option>)}
+        </select>
+      </div>
+      {loading ? <p>Loading...</p> : null}
+      {error ? <p style={{ color: 'red' }}>{error}</p> : null}
+      {[...subjectGroups.keys()].map(s => (
+        <div key={s} style={{ marginBottom: 24 }}>
+          <h3 style={{ margin: '12px 0' }}>{s}</h3>
+          <table>
+            <thead>
+              <tr>
+                <th>Quiz Title</th>
+                <th>Description</th>
+                <th>Published</th>
+              </tr>
+            </thead>
+            <tbody>
+              {subjectGroups.get(s).map(q => (
+                <tr key={q._id}>
+                  <td>{q.title}</td>
+                  <td>{q.description || '-'}</td>
+                  <td>{new Date(q.createdAt).toLocaleDateString()}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ))}
+    </div>
+  );
+};
+
+export default PublicQuizzesPage;
+
+
+
+
+/FRONTEND/src/pages/QuestionBankPage.jsx
+import React from 'react';
+import '../styles/QuestionBankPage.css';
+
+const QuestionBankPage = () => {
+  return (
+    <div className="question-bank-page">
+      <h2>Question Bank</h2>
+      {/* Table of saved questions */}
+      <table>
+        <thead>
+          <tr>
+            <th>Question</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {/* Map through questions and display */}
+        </tbody>
+      </table>
+    </div>
+  );
+};
+
+export default QuestionBankPage;
+
+
+/FRONTEND/src/pages/QuizListPage.jsx
+import React, { useEffect, useMemo, useState } from 'react';
+import '../styles/QuizListPage.css';
+import { apiListQuizzes } from '../api/quizzes';
+import { Link } from 'react-router-dom';
+import SkeletonTable from '../components/SkeletonTable';
+
+const QuizListPage = () => {
+  const [quizzes, setQuizzes] = useState([]);
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [query, setQuery] = useState('');
+
+  useEffect(() => {
+    let active = true;
+    async function load() {
+      try {
+        const data = await apiListQuizzes();
+        if (active) setQuizzes(data.quizzes || []);
+      } catch (e) {
+        setError(e.message || 'Failed to load quizzes');
+      } finally {
+        if (active) setLoading(false);
+      }
+    }
+    load();
+    return () => { active = false; };
+  }, []);
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return quizzes;
+    return quizzes.filter(it => (it.title || '').toLowerCase().includes(q) || (it.description || '').toLowerCase().includes(q));
+  }, [quizzes, query]);
+
+  return (
+    <div className="quiz-list-page">
+      <h2>Quiz List</h2>
+      <div style={{ marginBottom: 12 }}>
+        <input
+          type="text"
+          placeholder="Search quizzes"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          style={{ padding: 8, width: '100%', maxWidth: 360 }}
+        />
+      </div>
+      {loading ? <SkeletonTable rows={5} cols={4} /> : null}
+      {error ? <p style={{ color: 'red' }}>{error}</p> : null}
+      <table>
+        <thead>
+          <tr>
+            <th>Quiz Title</th>
+            <th>Created By</th>
+            <th>Created</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {filtered.map(q => (
+            <tr key={q._id}>
+              <td>{q.title}</td>
+              <td>{q.createdBy?.name || '-'}</td>
+              <td>{new Date(q.createdAt).toLocaleString()}</td>
+              <td>
+                <Link to={`/quiz/${q._id}`}>Take</Link>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+};
+
+export default QuizListPage;
+
+/FRONTEND/src/pages/QuizResultPage.jsx
+import React from 'react';
+import '../styles/QuizResultPage.css';
+import { useLocation, useNavigate } from 'react-router-dom';
+
+const QuizResultPage = () => {
+  const { state } = useLocation();
+  const navigate = useNavigate();
+  const result = state?.result;
+  const quiz = state?.quiz;
+  const totalPoints = state?.totalPoints;
+
+  if (!result || !quiz) {
+    return (
+      <div className="quiz-result-page">
+        <h2>Your Results</h2>
+        <p>Result not found. Go to quizzes.</p>
+        <button onClick={() => navigate('/quizzes')}>Back to Quizzes</button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="quiz-result-page">
+      <h2>Your Results</h2>
+      <h3>{quiz.title}</h3>
+      <p>Score: <b>{result.score}</b>{typeof totalPoints === 'number' ? ` / ${totalPoints}` : ''}</p>
+      <button onClick={() => navigate('/quizzes')}>Back to Quizzes</button>
+    </div>
+  );
+};
+
+export default QuizResultPage;
+
+/FRONTEND/src/pages/SignUpPage.jsx
+import React, { useState } from 'react';
+import '../styles/SignUpPage.css';
+import quizImage from '../assets/quiz-graphic.png'; // Rename your uploaded image
+import logo from '../assets/logo.jpg';
+import { apiRegister } from '../api/auth';
+import { useNavigate } from 'react-router-dom';
+
+const SignUpPage = () => {
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [role, setRole] = useState('Student');
+  const [error, setError] = useState('');
+  const navigate = useNavigate();
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+    try {
+      await apiRegister({ name, email, password, role });
+      // After register, user is logged in; route by selected role
+      const roleLower = role.toLowerCase();
+      if (roleLower === 'student') {
+        navigate('/student-dashboard');
+      } else if (roleLower === 'teacher') {
+        navigate('/teacher-dashboard');
+      } else if (roleLower === 'admin') {
+        navigate('/admin/dashboard');
+      } else {
+        navigate('/');
+      }
+    } catch (err) {
+      setError(err.message || 'Sign up failed');
+    }
+  };
+
+  return (
+    <div className="signup-wrapper">
+      <div className="signup-card">
+        {/* Left Side */}
+        <div className="signup-left">
+          <img src={quizImage} alt="Quiz Graphic" className="quiz-image" />
+        </div>
+
+        {/* Right Side */}
+        <div className="signup-right">
+          <img src={logo} alt="Logo" className="logo" />
+          <h1 className="app-name">QuizMaster</h1>
+          <h2 className="signup-title">Sign Up</h2>
+          <form onSubmit={handleSubmit}>
+            <label>Name</label>
+            <input
+              type="text"
+              placeholder="Enter your name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              required
+            />
+            <label>Email Address</label>
+            <input
+              type="email"
+              placeholder="Enter your email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
+            <label>Password</label>
+            <input
+              type="password"
+              placeholder="Enter your password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
+            <label>I am</label>
+            <select value={role} onChange={(e) => setRole(e.target.value)}>
+              <option value="Student">Student</option>
+              <option value="Teacher">Teacher</option>
+              <option value="Admin">Admin</option>
+            </select>
+            <button type="submit" className="signup-btn">Sign Up</button>
+            {error ? <p style={{ color: 'red', marginTop: 8 }}>{error}</p> : null}
+            <p className="switch-login">
+              Already have an account? <a href="/login">Login</a>
+            </p>
+          </form>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default SignUpPage;
+
+
+/FRONTEND/src/pages/StudentChatInterface.jsx
+import React from 'react';
+import '../styles/StudentChatInterface.css';
+
+const StudentChatInterface = () => {
+  return (
+    <div className="student-chat-interface">
+      <h2>Chat with Your Teacher</h2>
+      {/* Chat window */}
+      <div className="chat-window">
+        {/* Chat messages */}
+      </div>
+    </div>
+  );
+};
+
+export default StudentChatInterface;
+
+
+/FRONTEND/src/pages/StudentDashboard.jsx
+
+import React from "react";
+import { FaBell, FaComments } from "react-icons/fa";
+import { MdLogout } from "react-icons/md";
+import { NavLink, useNavigate } from "react-router-dom";
+import "../styles/StudentDashboard.css";
+import logo from '../assets/logo.jpg';
+import chat from '../assets/chat.png';
+import notification from '../assets/notification.png';
+import book from '../assets/stack_book.png';
+import Maths from '../assets/maths.png';
+import Chemistry from '../assets/chemistry.jpeg';
+import Physics from '../assets/phy.jpg';
+import { useAuth } from "../context/AuthContext";
+
+const StudentDashboard = () => {
+  const { logout, user } = useAuth();
+  const navigate = useNavigate();
+  function handleLogout() {
+    logout();
+    navigate('/login');
+  }
+  return (
+    <div className="dashboard-container">
+      <aside className="sidebar">
+        <div className="sidebar-header">
+          <img src={logo} alt="Logo" className="logo" />
+          <h3>Welcome<br /><span>{user?.name || 'Student'}</span></h3>
+        </div>
+
+        <nav className="nav-links">
+          <NavLink to="/student/home">Home</NavLink>
+          <NavLink to="/student/quizzes">Quizzes</NavLink>
+          <NavLink to="/student/questions">Question Bank</NavLink>
+          <NavLink to="/student/profile">Profile</NavLink>
+          <NavLink to="/student/chat">Chat</NavLink>
+        </nav>
+
+        <div className="quiz-timer">
+          <p>Quiz starts in</p>
+          <div className="timer-box">00:00:00</div>
+          <img src={book} alt="Books" className="books-img" />
+        </div>
+
+        <button className="logout-btn" onClick={handleLogout}>
+          <MdLogout size={20} /> Logout
+        </button>
+      </aside>
+
+      <main className="dashboard-main">
+        <div className="dashboard-header">
+          <input type="text" placeholder="Search quizzes" className="search-bar" />
+          <div className="header-icons">
+            <img src={chat} alt="chat" />
+            <img src={notification} alt="notification" />
+          </div>
+        </div>
+
+        <div className="active-quizzes">
+          <div className="section-title">
+            <h2>Active Quizzes</h2>
+            <button className="see-all">See all</button>
+          </div>
+          <div className="quiz-cards">
+            <div className="quiz-card">
+              <img src={Maths} alt="Math" />
+              <p>Mathematics</p>
+            </div>
+            <div className="quiz-card">
+              <img src={Chemistry} alt="Chemistry" />
+              <p>Chemistry</p>
+            </div>
+            <div className="quiz-card">
+              <img src={Physics} alt="Physics" />
+              <p>Physics</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="statistics-section">
+          <div className="exam-stats">
+            <h3>Exam Grade Statistics</h3>
+            <img src="https://i.ibb.co/jyZ1kKr/graph.png" alt="Graph" />
+          </div>
+
+          <div className="summary-cards">
+            <div className="summary-box">
+              <p>Total Quizzes</p>
+              <h2>10+</h2>
+            </div>
+            <div className="summary-box">
+              <p>Completed</p>
+              <h2>5</h2>
+            </div>
+            <div className="summary-box">
+              <p>Achievements</p>
+              <div className="medals">
+                <img src="https://cdn-icons-png.flaticon.com/512/2583/2583346.png" alt="Bronze" />
+                <img src="https://cdn-icons-png.flaticon.com/512/2583/2583345.png" alt="Silver" />
+                <img src="https://cdn-icons-png.flaticon.com/512/2583/2583346.png" alt="Bronze" />
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  );
+};
+
+export default StudentDashboard;
+
+
+/FRONTEND/src/pages/StudentManagementPage.jsx
+import React from 'react';
+import '../styles/StudentManagementPage.css';
+
+const StudentManagementPage = () => {
+  return (
+    <div className="student-management-page">
+      <h2>Student Management</h2>
+      <input type="email" placeholder="Add Student by Email" />
+      <button>Add Student</button>
+      {/* List of added students */}
+      <ul>
+        {/* Map through students */}
+      </ul>
+    </div>
+  );
+};
+
+export default StudentManagementPage;
+
+
+/FRONTEND/src/pages/TakeQuizPage.jsx
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import '../styles/TakeQuizPage.css';
+import { useNavigate, useParams } from 'react-router-dom';
+import { apiGetQuiz } from '../api/quizzes';
+import { apiSubmitResult } from '../api/results';
+
+const TakeQuizPage = () => {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const [quiz, setQuiz] = useState(null);
+  const [answers, setAnswers] = useState({});
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [startedAt] = useState(new Date().toISOString());
+  const [current, setCurrent] = useState(0);
+  const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    async function load() {
+      try {
+        const data = await apiGetQuiz(id);
+        if (active) setQuiz(data.quiz);
+      } catch (e) {
+        setError(e.message || 'Failed to load quiz');
+      } finally {
+        if (active) setLoading(false);
+      }
+    }
+    load();
+    return () => { active = false; };
+  }, [id]);
+
+  const totalPoints = useMemo(() => {
+    if (!quiz) return 0;
+    return (quiz.questions || []).reduce((sum, q) => sum + (q.points || 1), 0);
+  }, [quiz]);
+
+  const questions = quiz?.questions || [];
+  const total = questions.length;
+  const currentQuestion = total > 0 ? questions[current] : null;
+
+  const selectAnswer = useCallback((questionId, optionIndex) => {
+    setAnswers(prev => ({ ...prev, [questionId]: optionIndex }));
+  }, []);
+
+  const goNext = useCallback(() => setCurrent((c) => Math.min(c + 1, total - 1)), [total]);
+  const goPrev = useCallback(() => setCurrent((c) => Math.max(c - 1, 0)), []);
+
+  async function handleSubmit() {
+    try {
+      if (submitting) return;
+      setSubmitting(true);
+      if (!quiz) return;
+      const payloadAnswers = (quiz.questions || []).map(q => ({
+        questionId: q._id,
+        selectedOptionIndex: typeof answers[q._id] === 'number' ? answers[q._id] : -1
+      }));
+      const { result } = await apiSubmitResult({ quizId: quiz._id, answers: payloadAnswers, startedAt });
+      navigate('/quiz/result', { state: { result, quiz, totalPoints } });
+    } catch (e) {
+      setError(e.message || 'Failed to submit quiz');
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <div className="take-quiz-page">
+      {loading ? <p>Loading...</p> : null}
+      {error ? <p style={{ color: 'red' }}>{error}</p> : null}
+      {quiz ? (
+        <>
+          <h2>{quiz.title}</h2>
+          <p>{quiz.description}</p>
+          <div style={{ marginBottom: 8 }}>Progress: {total > 0 ? `${current + 1}/${total}` : '0/0'}</div>
+          {currentQuestion ? (
+            <div className="question-block">
+              <h4>{current + 1}. {currentQuestion.text}</h4>
+              <ul className="options">
+                {currentQuestion.options.map((opt, oi) => (
+                  <li key={oi}>
+                    <label>
+                      <input
+                        type="radio"
+                        name={`q-${currentQuestion._id}`}
+                        checked={answers[currentQuestion._id] === oi}
+                        onChange={() => selectAnswer(currentQuestion._id, oi)}
+                      />
+                      {' '}{opt.text}
+                    </label>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+          <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+            <button disabled={current <= 0} onClick={goPrev}>Previous</button>
+            <button disabled={current >= total - 1} onClick={goNext}>Next</button>
+            <button onClick={handleSubmit} disabled={submitting}>Submit</button>
+          </div>
+        </>
+      ) : null}
+    </div>
+  );
+};
+
+export default TakeQuizPage;
+
+
+/FRONTEND/src/pages/TeacherChatInterface.jsx
+
+import React from 'react';
+import '../styles/TeacherChatInterface.css';
+
+const TeacherChatInterface = () => {
+  return (
+    <div className="teacher-chat-interface">
+      <h2>Chat with Students</h2>
+      {/* List of student names */}
+      <ul>
+        {/* Map through students */}
+      </ul>
+      {/* Chat window */}
+      <div className="chat-window">
+        {/* Chat messages */}
+      </div>
+    </div>
+  );
+};
+
+export default TeacherChatInterface;
+
+/FRONTEND/src/pages/TeacherDashboard.jsx
+
+import React from 'react';
+
+import '../styles/TeacherDashboard.css';
+
+const TeacherDashboard = () => {
+  return (
+    <div className="teacher-dashboard">
+      <Sidebar />
+      <div className="dashboard-content">
+        <h2>Welcome, Teacher!</h2>
+        <div className="quick-stats">
+          {/* Quick stats overview */}
+        </div>
+        {/* Navigation cards or sidebar */}
+      </div>
+    </div>
+  );
+};
+
+export default TeacherDashboard;
+
+/FRONTEND/src/pages/ViewStudentResultPage.jsx
+
+import React from 'react';
+import '../styles/ViewStudentResultsPage.css';
+
+const ViewStudentResultsPage = () => {
+  return (
+    <div className="view-student-results-page">
+      <h2>Student Results</h2>
+      {/* List of students with performance summary */}
+      <table>
+        <thead>
+          <tr>
+            <th>Student Name</th>
+            <th>Quiz Performance</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {/* Map through students */}
+        </tbody>
+      </table>
+    </div>
+  );
+};
+
+export default ViewStudentResultsPage;
+
+
+
+/FRONTEND/src/styles/AdminDashBoard.css
+
+.admin-dashboard {
+  padding: 2rem;
+}
+
+.admin-dashboard h2 {
+  margin-bottom: 1rem;
+}
+
+/FRONTEND/src/styles/AssignQuizPage.css
+.assign-quiz-page {
+  padding: 2rem;
+}
+
+.assign-quiz-page select,
+.assign-quiz-page input {
+  margin-bottom: 1rem;
+  padding: 0.5rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+.assign-quiz-page button {
+  padding: 0.5rem;
+  background-color: #2563eb;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+
+/FRONTEND/src/styles/ChatWindow.css
+/* ChatWindow.css */
+.chat-window {
+  position: fixed;
+  right: -400px;
+  bottom: 20px;
+  width: 350px;
+  height: 500px;
+  background-color: white;
+  border-radius: 10px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+  display: flex;
+  flex-direction: column;
+  transition: right 0.3s ease;
+  overflow: hidden;
+  z-index: 1000;
+}
+
+.chat-window.open {
+  right: 20px;
+}
+
+.chat-header {
+  background-color: #3498db;
+  color: white;
+  padding: 1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.chat-header h3 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.close-chat {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 0.2rem;
+  transition: transform 0.3s;
+}
+
+.close-chat:hover {
+  transform: rotate(90deg);
+}
+
+.chat-messages {
+  flex: 1;
+  padding: 1rem;
+  overflow-y: auto;
+  background-color: #f9f9f9;
+}
+
+.empty-chat {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  color: #666;
+}
+
+.empty-chat img {
+  width: 150px;
+  height: 150px;
+  margin-bottom: 1rem;
+  opacity: 0.7;
+}
+
+.message {
+  display: flex;
+  margin-bottom: 1rem;
+}
+
+.message.sent {
+  justify-content: flex-end;
+}
+
+.message.received {
+  justify-content: flex-start;
+}
+
+.message-avatar {
+  margin-right: 0.8rem;
+  min-width: 30px;
+}
+
+.message-avatar img {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.message-content {
+  max-width: 70%;
+}
+
+.message-sender {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #444;
+  margin-bottom: 0.2rem;
+}
+
+.message-text {
+  padding: 0.7rem 1rem;
+  border-radius: 18px;
+  font-size: 0.95rem;
+  line-height: 1.4;
+  position: relative;
+}
+
+.message.sent .message-text {
+  background-color: #3498db;
+  color: white;
+  border-bottom-right-radius: 4px;
+}
+
+.message.received .message-text {
+  background-color: #e5e5ea;
+  color: #333;
+  border-bottom-left-radius: 4px;
+}
+
+.message-time {
+  display: block;
+  font-size: 0.7rem;
+  color: #777;
+  margin-top: 0.3rem;
+  text-align: right;
+}
+
+.chat-input {
+  display: flex;
+  padding: 1rem;
+  background-color: white;
+  border-top: 1px solid #eee;
+}
+
+.chat-input input {
+  flex: 1;
+  padding: 0.7rem 1rem;
+  border: 1px solid #ddd;
+  border-radius: 24px;
+  outline: none;
+  transition: border-color 0.3s;
+}
+
+.chat-input input:focus {
+  border-color: #3498db;
+}
+
+.chat-input button {
+  background-color: #3498db;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  margin-left: 0.5rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.3s;
+}
+
+.chat-input button:hover {
+  background-color: #2980b9;
+}
+
+.send-icon {
+  width: 20px;
+  height: 20px;
+  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>');
+  background-repeat: no-repeat;
+  background-size: contain;
+}
+
+@media (max-width: 480px) {
+  .chat-window {
+    width: calc(100% - 40px);
+    height: 70vh;
+    bottom: 10px;
+  }
+  
+  .chat-window.open {
+    right: 10px;
+  }
+}
+
+
+/FRONTEND/src/styles/CreateQuizPage.css
+.create-quiz-page {
+  padding: 2rem;
+}
+
+.create-quiz-page input,
+.create-quiz-page textarea {
+  margin-bottom: 1rem;
+  padding: 0.5rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+.create-quiz-page button {
+  padding: 0.5rem;
+  background-color: #2563eb;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+
+/FRONTEND/src/styles/CTA.css
+/* CTASection.css */
+.gradient-section {
+  background: linear-gradient(to right, #c2ffd8, #92baff);
+  padding: 6rem 1rem;
+  min-height: 50vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  margin-top: 3rem;
+  border-radius: 15px;
+  color: white;
+}
+
+.gradient-section h2 {
+  font-size: 2.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.gradient-section p {
+  font-size: 1.3rem;
+  margin-bottom: 2.5rem;
+  max-width: 800px;
+  line-height: 1.7;
+}
+
+.gradient-section button {
+  padding: 1.2rem 3rem;
+  font-size: 1.2rem;
+  background: white;
+  color: #3a4fff;
+  font-weight: bold;
+  border: none;
+  border-radius: 30px;
+  cursor: pointer;
+  transition: background 0.3s ease, transform 0.3s ease;
+}
+
+.gradient-section button:hover {
+  background: #e0e0e0;
+  transform: translateY(-2px);
+}
+
+
+/FRONTEND/src/styles/DetailedResultViewPage.css
+.detailed-result-view-page {
+  padding: 2rem;
+}
+
+.detailed-result-view-page .question {
+  margin-bottom: 1rem;
+}
+
+
+/FRONTEND/src/styles/EditProfilePage.css
+.edit-profile-page {
+  padding: 2rem;
+}
+
+.edit-profile-page input {
+  margin-bottom: 1rem;
+  padding: 0.5rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+.edit-profile-page button {
+  padding: 0.5rem;
+  background-color: #2563eb;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+
+/FRONTEND/src/styles/Features.css
+/* Features.css */
+section {
+  padding: 2rem 0;
+  align-items: center;
+}
+
+section h2 {
+  font-size: 2rem;
+  color: #3a4fff;
+  margin-bottom: 1rem;
+  text-align: center;
+}
+
+section p {
+  font-size: 1.1rem;
+  color: #555;
+  margin-bottom: 2rem;
+  text-align: center;
+}
+
+.features {
+  display: flex;
+  justify-content: center;
+  margin: 2rem 0;
+  flex-wrap: wrap;
+  gap: 3.5rem;
+}
+
+.feature-card {
+  flex: 1;
+  min-width: 280px;
+  max-width: 350px;
+  background: #fff;
+  padding: 2rem;
+  border-radius: 15px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.feature-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 15px rgba(0,0,0,0.12);
+}
+
+.feature-card h3 {
+  margin-bottom: 1rem;
+  color: #333;
+  font-size: 1.3rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.feature-card h3 img {
+  height: 60px;
+  border-radius: 15px;
+  margin-bottom: 0.5rem;
+}
+
+.feature-card p {
+  font-size: 1rem;
+  color: #555;
+  line-height: 1.6;
+  margin-bottom: 0;
+}
+
+
+/FRONTEND/src/styles/Footer.css
+/* Footer.css */
+.footer {
+  background-color: #2c3e50;
+  color: white;
+  padding: 3rem 0 0;
+  font-size: 0.9rem;
+}
+
+.footer-content {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 2rem;
+}
+
+.footer-section {
+  margin-bottom: 2rem;
+}
+
+.footer-section h3 {
+  color: #3498db;
+  margin-bottom: 1.5rem;
+  font-size: 1.2rem;
+}
+
+.footer-section.about p {
+  line-height: 1.6;
+  opacity: 0.9;
+}
+
+.footer-section.links ul {
+  list-style: none;
+  padding: 0;
+}
+
+.footer-section.links li {
+  margin-bottom: 0.8rem;
+}
+
+.footer-section.links a {
+  color: white;
+  text-decoration: none;
+  transition: color 0.3s;
+  display: inline-block;
+  padding: 0.2rem 0;
+}
+
+.footer-section.links a:hover {
+  color: #3498db;
+  transform: translateX(5px);
+}
+
+.footer-section.contact p {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  opacity: 0.9;
+}
+
+.icon {
+  width: 20px;
+  height: 20px;
+  display: inline-block;
+  background-size: contain;
+  background-repeat: no-repeat;
+}
+
+.icon.email {
+  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white"><path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>');
+}
+
+.icon.phone {
+  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white"><path d="M20.01 15.38c-1.23 0-2.42-.2-3.53-.56-.35-.12-.74-.03-1.01.24l-1.57 1.97c-2.83-1.35-5.48-3.9-6.89-6.83l1.95-1.66c.27-.28.35-.67.24-1.02-.37-1.11-.56-2.3-.56-3.53 0-.54-.45-.99-.99-.99H4.19C3.65 3 3 3.24 3 3.99 3 13.28 10.73 21 20.01 21c.71 0 .99-.63.99-1.18v-3.45c0-.54-.45-.99-.99-.99z"/></svg>');
+}
+
+.social-icons {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+.social-icon {
+  display: inline-block;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background-color: rgba(255, 255, 255, 0.1);
+  transition: background-color 0.3s;
+  position: relative;
+}
+
+.social-icon:hover {
+  background-color: #3498db;
+}
+
+.social-icon::before {
+  content: '';
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-size: contain;
+  background-repeat: no-repeat;
+}
+
+.social-icon.facebook::before {
+  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white"><path d="M22 12c0-5.52-4.48-10-10-10S2 6.48 2 12c0 4.84 3.44 8.87 8 9.8V15H8v-3h2V9.5C10 7.57 11.57 6 13.5 6H16v3h-2c-.55 0-1 .45-1 1v2h3v3h-3v6.95c5.05-.5 9-4.76 9-9.95z"/></svg>');
+}
+
+.social-icon.twitter::before {
+  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white"><path d="M22.46 6c-.77.35-1.6.58-2.46.69.88-.53 1.56-1.37 1.88-2.38-.83.5-1.75.85-2.72 1.05C18.37 4.5 17.26 4 16 4c-2.35 0-4.27 1.92-4.27 4.29 0 .34.04.67.11.98C8.28 9.09 5.11 7.38 3 4.79c-.37.63-.58 1.37-.58 2.15 0 1.49.75 2.81 1.91 3.56-.71 0-1.37-.2-1.95-.5v.03c0 2.08 1.48 3.82 3.44 4.21a4.22 4.22 0 0 1-1.93.07 4.28 4.28 0 0 0 4 2.98 8.521 8.521 0 0 1-5.33 1.84c-.34 0-.68-.02-1.02-.06C3.44 20.29 5.7 21 8.12 21 16 21 20.33 14.46 20.33 8.79c0-.19 0-.37-.01-.56.84-.6 1.56-1.36 2.14-2.23z"/></svg>');
+}
+
+.social-icon.linkedin::before {
+  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white"><path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.32 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.79M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z"/></svg>');
+}
+
+.footer-bottom {
+  text-align: center;
+  padding: 1.5rem 0;
+  background-color: #1a252f;
+  opacity: 0.9;
+}
+
+@media (max-width: 768px) {
+  .footer-content {
+    grid-template-columns: 1fr 1fr;
+    padding: 0 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .footer-content {
+    grid-template-columns: 1fr;
+  }
+}
+
+
+/FRONTEND/src/styles/LandingPage.css
+
+.landing-page {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.landing-page main {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+}
+
+.hero {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.hero h1 {
+  font-size: 2.5rem;
+  margin-bottom: 1rem;
+}
+
+.hero p {
+  font-size: 1.2rem;
+  margin-bottom: 2rem;
+}
+
+.cta-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+}
+
+.btn {
+  padding: 0.8rem 1.5rem;
+  border-radius: 4px;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.btn.primary {
+  background-color: #2563eb;
+  color: white;
+}
+
+.btn.secondary {
+  background-color: #e5e7eb;
+  color: #1f2937;
+}
+.text-section {
+  margin-bottom: 2rem;
+  text-align: center;
+}
+
+.text-section .tagline {
+  color: #666;
+  font-size: 1.1rem;
+  margin-bottom: 0.5rem;
+}
+
+.text-section .subtext {
+  color: #555;
+  font-size: 1.1rem;
+}
+.logo-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.logo-section img {
+  height: 70px;
+  border-radius: 25px;
+  margin-bottom: 0.5rem;
+}
+
+.logo-section h1 {
+  color: #3a4fff;
+  font-size: 2.5rem;
+  margin: 0;
+  font-weight: bold;
+}
+.cta-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.cta-buttons button {
+  padding: 1rem 2rem;
+  font-size: 1.1rem;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: background 0.3s ease, transform 0.3s ease;
+}
+
+.cta-buttons .primary {
+  background: #3a4fff;
+  color: white;
+}
+
+.cta-buttons .primary:hover {
+  background: #2b3ace;
+  transform: translateY(-2px);
+}
+
+.cta-buttons .secondary {
+  background: #f2f2f2;
+  color: #222;
+  border: 1px solid #ccc;
+}
+
+.cta-buttons .secondary:hover {
+  background: #e0e0e0;
+  transform: translateY(-2px);
+}
+
+/FRONTEND/src/styles/LoginPage.css
+
+.auth-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: #f1f3ff;
+  min-height: 100vh;
+  padding: 20px;
+}
+
+.auth-container {
+  display: flex;
+  background: #e6f8ff;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+  max-width: 1000px;
+  width: 90%;
+}
+
+.auth-left img {
+  height: 100%;
+  width: 100%;
+  object-fit: cover;
+}
+
+.auth-left {
+  width: 50%;
+}
+
+.auth-right {
+  width: 50%;
+  padding: 40px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  background-color: #e6f8ff;
+}
+
+.auth-logo {
+  width: 60px;
+  height: 60px;
+  border-radius: 15px;
+  margin: 0 auto;
+}
+
+.auth-title {
+  text-align: center;
+  font-size: 28px;
+  color: #3a4fff;
+  margin-top: 10px;
+}
+
+.auth-subtitle {
+  text-align: center;
+  font-size: 20px;
+  margin-bottom: 30px;
+}
+
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.auth-form label {
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.auth-form input,
+.auth-form select {
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+.auth-button {
+  background-color: #3a4fff;
+  color: white;
+  padding: 12px;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: background 0.3s ease;
+}
+
+.auth-button:hover {
+  background-color: #2f37d1;
+}
+
+.auth-links {
+  text-align: center;
+  margin-top: 10px;
+  font-size: 14px;
+}
+
+.auth-links a {
+  color: #3a4fff;
+  text-decoration: none;
+}
+
+.auth-links a:hover {
+  text-decoration: underline;
+}
+
+/FRONTEND/src/styles/Navbar.css
+
+/* Navbar.css */
+.navbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 2rem;
+  background-color: #2c3e50;
+  color: white;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+}
+
+.navbar-brand {
+  display: flex;
+  align-items: center;
+}
+
+.navbar-logo img {
+  height: 40px;
+  transition: transform 0.3s ease;
+}
+
+.navbar-logo:hover img {
+  transform: scale(1.05);
+}
+
+.nav-links {
+  display: flex;
+  list-style: none;
+  gap: 2rem;
+  margin: 0;
+  padding: 0;
+}
+
+.nav-links li a {
+  color: white;
+  text-decoration: none;
+  font-weight: 500;
+  padding: 0.5rem 0;
+  position: relative;
+  transition: color 0.3s ease;
+}
+
+.nav-links li a:hover {
+  color: #3498db;
+}
+
+.nav-links li.active a {
+  color: #3498db;
+}
+
+.nav-links li.active a::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background-color: #3498db;
+}
+
+.navbar-user {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  position: relative;
+  cursor: pointer;
+}
+
+.user-avatar img {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #3498db;
+}
+
+.user-dropdown {
+  position: relative;
+}
+
+.user-dropdown span {
+  font-weight: 500;
+}
+
+.dropdown-content {
+  position: absolute;
+  right: 0;
+  top: 100%;
+  background-color: white;
+  min-width: 160px;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+  border-radius: 4px;
+  padding: 1rem 0;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-10px);
+  transition: all 0.3s ease;
+  z-index: 1;
+}
+
+.user-dropdown:hover .dropdown-content {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+.dropdown-content a, 
+.dropdown-content button {
+  display: block;
+  padding: 0.5rem 1rem;
+  text-decoration: none;
+  color: #2c3e50;
+  transition: background-color 0.3s;
+}
+
+.dropdown-content a:hover, 
+.dropdown-content button:hover {
+  background-color: #f5f5f5;
+}
+
+.dropdown-content button {
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .navbar {
+    padding: 1rem;
+  }
+  
+  .nav-links {
+    gap: 1rem;
+  }
+  
+  .navbar-user {
+    gap: 0.5rem;
+  }
+}
+
+@media (max-width: 576px) {
+  .nav-links {
+    display: none;
+  }
+}
+
+/FRONTEND/src/styles/QuestionBankPage.css
+
+.question-bank-page {
+  padding: 2rem;
+}
+
+.question-bank-page table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.question-bank-page th,
+.question-bank-page td {
+  border: 1px solid #ccc;
+  padding: 0.5rem;
+  text-align: left;
+}
+
+/FRONTEND/src/styles/QuizCard.css
+.quiz-card {
+  background: white;
+  padding: 15px;
+  border-radius: 15px;
+  text-align: center;
+  width: 180px;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+.quiz-card img {
+  width: 100%;
+  height: 100px;
+  object-fit: contain;
+}
+
+.quiz-card h4 {
+  margin-top: 10px;
+}
+
+
+/FRONTEND/src/styles/QuizListPage.css
+.quiz-list-page {
+  padding: 2rem;
+}
+
+.quiz-list-page table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.quiz-list-page th,
+.quiz-list-page td {
+  border: 1px solid #ccc;
+  padding: 0.5rem;
+  text-align: left;
+}
+
+
+/FRONTEND/src/styles/QuizResultPage.css
+
+.quiz-result-page {
+  padding: 2rem;
+}
+
+.quiz-result-page .score {
+  font-size: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+/FRONTEND/src/styles/Sidebar.css
+.sidebar {
+  width: 220px;
+  background-color: #4f94ff;
+  color: white;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  border-top-left-radius: 20px;
+  border-bottom-left-radius: 20px;
+}
+
+.logo {
+  width: 60px;
+  margin-bottom: 30px;
+}
+
+.sidebar-nav a {
+  color: white;
+  text-decoration: none;
+  margin: 10px 0;
+  display: block;
+  font-size: 18px;
+}
+
+.quiz-timer {
+  margin-top: auto;
+  background: white;
+  color: #4f94ff;
+  padding: 10px;
+  text-align: center;
+  border-radius: 15px;
+}
+
+
+/FRONTEND/src/styles/SignUpPage.css
+
+.signup-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: #eef1ff;
+  height: 100vh;
+  padding: 20px;
+}
+
+.signup-card {
+  display: flex;
+  width: 90%;
+  max-width: 1000px;
+  background-color: white;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+}
+
+/* Left Section */
+.signup-left {
+  flex: 1;
+  background-color: #cfe8ff;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 30px;
+}
+
+.quiz-image {
+  width: 100%;
+  max-width: 420px;
+}
+
+/* Right Section */
+.signup-right {
+  flex: 1;
+  background-color: #d9f6fc;
+  padding: 40px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.logo {
+  width: 60px;
+  height: 60px;
+  border-radius: 15px;
+  margin-bottom: 10px;
+  -webkit-border-radius: 15px;
+  -moz-border-radius: 15px;
+  -ms-border-radius: 15px;
+  -o-border-radius: 15px;
+}
+
+.app-name {
+  color: #3a4fff;
+  font-size: 1.8rem;
+  margin-bottom: 0.3rem;
+}
+
+.signup-title {
+  color: #0077c2;
+  margin-bottom: 1.2rem;
+}
+
+form {
+  width: 100%;
+  max-width: 300px;
+}
+
+form label {
+  display: block;
+  font-weight: bold;
+  margin-top: 10px;
+  margin-bottom: 5px;
+  text-align: left;
+}
+
+form input,
+form select {
+  width: 100%;
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  margin-bottom: 10px;
+  font-size: 1rem;
+}
+
+.signup-btn {
+  width: 100%;
+  padding: 10px;
+  background-color: #3a4fff;
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 1rem;
+  margin-top: 5px;
+  cursor: pointer;
+}
+
+.signup-btn:hover {
+  background-color: #2c39d8;
+}
+
+.switch-login {
+  margin-top: 15px;
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+.switch-login a {
+  color: #3a4fff;
+  text-decoration: none;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .signup-card {
+    flex-direction: column;
+    border-radius: 10px;
+  }
+
+  .signup-left,
+  .signup-right {
+    width: 100%;
+  }
+
+  .quiz-image {
+    max-width: 300px;
+  }
+}
+
+/FRONTEND/src/styles/StudentChatInterface.css
+
+.student-chat-interface {
+  padding: 2rem;
+}
+
+.student-chat-interface .chat-window {
+  border: 1px solid #ccc;
+  padding: 1rem;
+  height: 300px;
+  overflow-y: auto;
+}
+
+/FRONTEND/src/styles/StudentDashboard.css
+
+.dashboard-container {
+  display: flex;
+  min-height: 100vh;
+  background: #f9fbff;
+  font-family: 'Segoe UI', sans-serif;
+}
+
+.sidebar {
+  width: 260px;
+  background: linear-gradient(to bottom right, #3a4fff, #5a68ff);
+  color: #fff;
+  padding: 2rem 1.2rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.sidebar-header {
+  text-align: center;
+  align-items: center;
+}
+
+.logo {
+  width: 70px;
+  height: 70px;
+  border-radius: 15px;
+  margin-bottom: 10px;
+  -webkit-border-radius: 15px;
+  -moz-border-radius: 15px;
+  -ms-border-radius: 15px;
+  -o-border-radius: 15px;
+
+}
+
+.sidebar-header h3 {
+  font-size: 18px;
+  line-height: 1.4;
+}
+
+.sidebar-header span {
+  font-weight: bold;
+}
+
+.nav-links {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-top: 2rem;
+}
+
+.nav-links a {
+  color: #fff;
+  text-decoration: none;
+  padding: 0.6rem 1rem;
+  border-radius: 10px;
+  transition: background 0.3s;
+}
+
+.nav-links a:hover {
+  background-color: rgba(255, 255, 255, 0.2);
+}
+
+.quiz-timer {
+  margin-top: 2rem;
+  text-align: center;
+  color: #3a4fff ;
+  background-color: #fff;
+  border-radius: 25px;
+  -webkit-border-radius: 25px;
+  -moz-border-radius: 25px;
+  -ms-border-radius: 25px;
+  -o-border-radius: 25px;
+}
+
+.timer-box {
+  background: #fff;
+  color: #3a4fff;
+  padding: 10px;
+  margin: 10px auto;
+  border-radius: 8px;
+  width: 120px;
+  font-weight: bold;
+  border:solid 2px #3a4fff;
+}
+
+.books-img {
+  width: 80px;
+  margin-top: 10px;
+  border-radius: 10px;
+  -webkit-border-radius: 10px;
+  -moz-border-radius: 10px;
+  -ms-border-radius: 10px;
+  -o-border-radius: 10px;
+  margin-left:50px;
+  width: 100px;
+  height: 100px;
+}
+
+.logout-btn {
+  background: #fff;
+  color: #3a4fff;
+  padding: 10px 15px;
+  border: none;
+  border-radius: 20px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+}
+
+.dashboard-main {
+  flex: 1;
+  padding: 2rem;
+}
+
+.dashboard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.search-bar {
+  padding: 10px;
+  border-radius: 12px;
+  border: 1px solid #ccc;
+  width: 250px;
+}
+
+.header-icons img {
+  width: 30px;
+  margin-left: 1rem;
+  cursor: pointer;
+  display: flex;
+}
+
+.active-quizzes {
+  margin-top: 2rem;
+}
+
+.section-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.section-title h2 {
+  font-size: 22px;
+  color: #333;
+}
+
+.see-all {
+  background: none;
+  border: none;
+  color: #3a4fff;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.quiz-cards {
+  display: flex;
+  gap: 1.2rem;
+  margin-top: 1rem;
+}
+
+.quiz-card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 1rem;
+  width: 160px;
+  text-align: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.quiz-card img {
+  width: 100%;
+  height: 100px;
+  object-fit: cover;
+  border-radius: 10px;
+}
+
+.quiz-card p {
+  margin-top: 10px;
+  font-weight: bold;
+  color: #444;
+}
+
+.statistics-section {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 2rem;
+  gap: 2rem;
+  flex-wrap: wrap;
+}
+
+.exam-stats {
+  flex: 2;
+  background: #fff;
+  padding: 1.5rem;
+  border-radius: 16px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.07);
+}
+
+.exam-stats h3 {
+  margin-bottom: 1rem;
+}
+
+.exam-stats img {
+  width: 100%;
+  height: auto;
+}
+
+.summary-cards {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.summary-box {
+  background: #fff;
+  border-radius: 12px;
+  padding: 1rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  text-align: center;
+}
+
+.summary-box h2 {
+  font-size: 24px;
+  margin-top: 0.5rem;
+  color: #3a4fff;
+}
+
+.medals img {
+  width: 30px;
+  margin: 5px;
+}
+
+
+/FRONTEND/src/styles/StudentManagementPage.css
+
+.student-management-page {
+  padding: 2rem;
+}
+
+.student-management-page input {
+  margin-bottom: 1rem;
+  padding: 0.5rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+.student-management-page button {
+  padding: 0.5rem;
+  background-color: #2563eb;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+/FRONTEND/src/styles/TakeQuizPage.css
+
+.take-quiz-page {
+  padding: 2rem;
+}
+
+.take-quiz-page .timer {
+  font-size: 1.2rem;
+  margin-bottom: 1rem;
+}
+
+.take-quiz-page button {
+  padding: 0.5rem;
+  background-color: #2563eb;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+
+/FRONTEND/src/styles/TeacherChatInterface.css
+
+.teacher-chat-interface {
+  padding: 2rem;
+}
+
+.teacher-chat-interface .chat-window {
+  border: 1px solid #ccc;
+  padding: 1rem;
+  height: 300px;
+  overflow-y: auto;
+}
+
+/FRONTEND/src/styles/TeacherDashboard.css
+
+.teacher-dashboard {
+  padding: 2rem;
+}
+
+.teacher-dashboard h2 {
+  margin-bottom: 1rem;
+}
+
+/FRONTEND/src/styles/ViewStudentResultsPage.css
+.view-student-results-page {
+  padding: 2rem;
+}
+
+.view-student-results-page table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.view-student-results-page th,
+.view-student-results-page td {
+  border: 1px solid #ccc;
+  padding: 0.5rem;
+  text-align: left;
+}
+
+/FRONTEND/src/App.jsx
+
+import React, { Suspense, lazy } from 'react';
+import { Routes, Route } from 'react-router-dom';
+
+import LandingPage from './pages/LandingPage';
+import LoginPage from './pages/LoginPage';
+import SignUpPage from './pages/SignUpPage';
+const TeacherDashboard = lazy(() => import('./pages/TeacherDashboard'));
+const StudentDashboard = lazy(() => import('./pages/StudentDashboard'));
+const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
+const QuizListPage = lazy(() => import('./pages/QuizListPage'));
+const TakeQuizPage = lazy(() => import('./pages/TakeQuizPage'));
+const QuizResultPage = lazy(() => import('./pages/QuizResultPage'));
+import ProtectedRoute from './components/ProtectedRoute';
+import PublicQuizzesPage from './pages/PublicQuizzesPage';
+import Spinner from './components/Spinner';
+import EditProfilePage from './pages/EditProfilePage';
+
+const App = () => {
+  return (
+    <Suspense fallback={<Spinner />}>
+      <Routes>
+        <Route path="/" element={<LandingPage />} />
+        <Route path="/quizzes/public" element={<PublicQuizzesPage />} />
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/signup" element={<SignUpPage />} />
+        <Route element={<ProtectedRoute allowRoles={['teacher']} />}>
+          <Route path="/teacher-dashboard" element={<TeacherDashboard />} />
+        </Route>
+        <Route element={<ProtectedRoute allowRoles={['student']} />}>
+          <Route path="/student-dashboard" element={<StudentDashboard />} />
+          <Route path="/quizzes" element={<QuizListPage />} />
+          <Route path="/quiz/:id" element={<TakeQuizPage />} />
+          <Route path="/quiz/result" element={<QuizResultPage />} />
+          <Route path="/student/profile" element={<EditProfilePage />} />
+        </Route>
+        <Route element={<ProtectedRoute allowRoles={['admin']} />}>
+          <Route path="/admin/dashboard" element={<AdminDashboard />} />
+        </Route>
+      </Routes>
+    </Suspense>
+  );
+};
+
+export default App;
+
+
+/FRONTEND/src/index.css
+
+/* index.css */
+/* Reset and base styles */
+:root {
+  --primary-color: #2563eb;
+  --secondary-color: #e2e8f0;
+  --accent-color: #3b82f6;
+  --text-color: #1e293b;
+  --text-light: #64748b;
+  --background-light: #f8fafc;
+  --border-color: #e2e8f0;
+  --success-color: #10b981;
+  --error-color: #ef4444;
+  --warning-color: #f59e0b;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  font-size: 16px;
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  line-height: 1.5;
+  color: var(--text-color);
+  background-color: var(--background-light);
+  min-height: 100vh;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  line-height: 1.2;
+  font-weight: 600;
+}
+
+a {
+  text-decoration: none;
+  color: var(--primary-color);
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+input, button, textarea, select {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+/* Utility classes */
+.container {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+.flex {
+  display: flex;
+  gap: 1rem;
+}
+
+.flex-col {
+  flex-direction: column;
+}
+
+.items-center {
+  align-items: center;
+}
+
+.justify-between {
+  justify-content: space-between;
+}
+
+.grid {
+  display: grid;
+  gap: 1rem;
+}
+
+.text-center {
+  text-align: center;
+}
+
+.text-sm {
+  font-size: 0.875rem;
+}
+
+.text-gray {
+  color: var(--text-light);
+}
+
+.p-4 {
+  padding: 1rem;
+}
+
+.mb-4 {
+  margin-bottom: 1rem;
+}
+
+.rounded {
+  border-radius: 0.375rem;
+}
+
+.shadow-sm {
+  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+}
+
+.card {
+  background: white;
+  border-radius: 0.375rem;
+  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1);
+  padding: 1.25rem;
+}
+
+.btn {
+  display: inline-block;
+  padding: 0.5rem 1rem;
+  border-radius: 0.375rem;
+  font-weight: 500;
+  text-align: center;
+  transition: all 0.2s;
+}
+
+.btn-primary {
+  background-color: var(--primary-color);
+  color: white;
+  border: 1px solid var(--primary-color);
+}
+
+.btn-primary:hover {
+  background-color: #1d4ed8;
+  text-decoration: none;
+}
+
+.btn-secondary {
+  background-color: white;
+  color: var(--primary-color);
+  border: 1px solid var(--border-color);
+}
+
+.btn-secondary:hover {
+  background-color: var(--secondary-color);
+  text-decoration: none;
+}
+
+/* Form styles */
+.form-group {
+  margin-bottom: 1rem;
+}
+
+.form-label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+}
+
+.form-control {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid var(--border-color);
+  border-radius: 0.375rem;
+}
+
+.form-control:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
+}
+
+/* Responsive breakpoints */
+@media (max-width: 640px) {
+  .mobile\:flex-col {
+    flex-direction: column;
+  }
+  
+  .mobile\:w-full {
+    width: 100%;
+  }
+}
+
+
+/FRONTEND/src/main.jsx
+// src/main.jsx
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import { BrowserRouter } from 'react-router-dom';
+import App from './App';
+import './index.css';
+import { AuthProvider } from './context/AuthContext';
+import ErrorBoundary from './components/ErrorBoundary';
+
+ReactDOM.createRoot(document.getElementById('root')).render(
+  <BrowserRouter>
+    <ErrorBoundary>
+      <AuthProvider>
+        <App />
+      </AuthProvider>
+    </ErrorBoundary>
+  </BrowserRouter>
+);
+
+
+/FRONTEND/env.example
+
+VITE_PUBLIC_API_BASE=/api
+VITE_PUBLIC_API_KEY=
+
+/FRONTEND/eslint.config.js
+
+import js from '@eslint/js'
+import globals from 'globals'
+import reactHooks from 'eslint-plugin-react-hooks'
+import reactRefresh from 'eslint-plugin-react-refresh'
+import { defineConfig, globalIgnores } from 'eslint/config'
+
+export default defineConfig([
+  globalIgnores(['dist']),
+  {
+    files: ['**/*.{js,jsx}'],
+    extends: [
+      js.configs.recommended,
+      reactHooks.configs['recommended-latest'],
+      reactRefresh.configs.vite,
+    ],
+    languageOptions: {
+      ecmaVersion: 2020,
+      globals: globals.browser,
+      parserOptions: {
+        ecmaVersion: 'latest',
+        ecmaFeatures: { jsx: true },
+        sourceType: 'module',
+      },
+    },
+    rules: {
+      'no-unused-vars': ['error', { varsIgnorePattern: '^[A-Z_]' }],
+    },
+  },
+])
+
+/FRONTEND/index.html
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Vite + React</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>
+
+/FRONTEND/package.jason
+
+{
+  "name": "quiz_master",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "lint": "eslint .",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "react-icons": "^5.5.0",
+    "react-router-dom": "^7.7.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.30.1",
+    "@types/react": "^19.1.8",
+    "@types/react-dom": "^19.1.6",
+    "@vitejs/plugin-react": "^4.6.0",
+    "eslint": "^9.30.1",
+    "eslint-plugin-react-hooks": "^5.2.0",
+    "eslint-plugin-react-refresh": "^0.4.20",
+    "globals": "^16.3.0",
+    "vite": "^7.0.4"
+  }
+}
+
+/FRONTEND/.hintrc
+{
+  "extends": [
+    "development"
+  ],
+  "hints": {
+    "compat-api/css": [
+      "default",
+      {
+        "ignore": [
+          "backdrop-filter"
+        ]
+      }
+    ]
+  }
+}

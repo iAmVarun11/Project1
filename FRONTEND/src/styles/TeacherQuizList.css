@@ -1,0 +1,18 @@
+.tq-root {
+  display: flex;
+  background: #f8faff;
+  height: 100vh;
+}
+
+.tq-main {
+  flex: 1;
+  padding: 30px;
+}
+
+.tq-item {
+  background: white;
+  padding: 20px;
+  border-radius: 15px;
+  margin-bottom: 15px;
+  border: 1px solid #e2e8f0;
+}
